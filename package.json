@@ -1,0 +1,27 @@
+{
+  "name": "orders-to-excel",
+  "version": "1.0.0",
+  "description": "Convertir ordenes a excel",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luisra99/orders-to-excel.git"
+  },
+  "keywords": [
+    "temu",
+    "excel"
+  ],
+  "author": "luisra99",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luisra99/orders-to-excel/issues"
+  },
+  "homepage": "https://github.com/luisra99/orders-to-excel#readme",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "express": "^4.21.0"
+  }
+}
