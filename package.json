@@ -21,7 +21,9 @@
   },
   "homepage": "https://github.com/luisra99/orders-to-excel#readme",
   "dependencies": {
+    "archiver": "^7.0.1",
     "body-parser": "^1.20.3",
+    "cheerio": "^1.0.0",
     "express": "^4.21.0",
     "multer": "^1.4.5-lts.1",
     "xlsx": "^0.18.5"

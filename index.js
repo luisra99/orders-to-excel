@@ -3,6 +3,8 @@ const fs = require("fs/promises"); // Módulo para leer archivos de manera asinc
 const path = require("path");
 const XLSX = require("xlsx"); // Importar xlsx
 const multer = require("multer"); // Importar multer para subir archivos
+const cheerio = require("cheerio");
+const archiver = require("archiver"); // Biblioteca para comprimir archivos
 
 const app = express();
 const port = 3000;
@@ -29,164 +31,7 @@ app.use(express.static("public"));
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
-// Ruta para procesar archivos HTML en una carpeta
-app.get("/convertir-html", async (req, res) => {
-  try {
-    const folderPath = path.join(__dirname, "/public"); // Ruta de la carpeta
-    const files = await fs.readdir(folderPath); // Leer los archivos dentro de la carpeta
-    let htmlFiles = files.filter((file) => path.extname(file) === ".html"); // Filtrar solo los HTML
 
-    let resultados = [];
-    for (const file of htmlFiles) {
-      const filePath = path.join(folderPath, file);
-      const content = await fs.readFile(filePath, "utf8"); // Leer contenido del archivo
-      const nombres = extractSpanContents(
-        content,
-        `class="_2CzqyEwl">`,
-        `</span>`
-      );
-      const precios = extractSpanContents(
-        content,
-        `class="_3QXWbu8N">`,
-        `</div>`
-      );
-      const detalles = extractSpanContents(
-        content,
-        `class="_2mokkSXY">`,
-        `</span>`
-      );
-      const cantidad = extractSpanContents(
-        content,
-        `class="_3kmrz08e">`,
-        `</div>`
-      );
-      const elementos = nombres.map((item, index) => {
-        const _precio = Number(precios[index].replace(/\$/, ""));
-        const _cantidad = Number(cantidad[index].slice(9));
-
-        return {
-          Nombre: nombres[index],
-          Detalles: detalles[index].trim(),
-          Cantidad: _cantidad,
-          Precio: _precio,
-          Costo: _cantidad * _precio,
-        };
-      });
-      elementos.forEach((item) => resultados.push(item)); // Almacenar el contenido en el arreglo
-    }
-    try {
-      // Crear un libro de trabajo
-      const workbook = XLSX.utils.book_new();
-
-      // Crear una hoja de trabajo a partir del arreglo de objetos
-      const worksheet = XLSX.utils.json_to_sheet(resultados);
-
-      // Agregar la hoja de trabajo al libro
-      XLSX.utils.book_append_sheet(workbook, worksheet, "DatosHTML");
-
-      // Definir el archivo Excel como un archivo binario
-      const excelBuffer = XLSX.write(workbook, {
-        type: "buffer",
-        bookType: "xlsx",
-      });
-
-      // Enviar el archivo Excel como descarga
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=datos-html.xlsx"
-      );
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-      res.send(excelBuffer);
-    } catch (error) {
-      console.error(error);
-    }
-  } catch (error) {
-    res.status(500).send(`Error: ${error.message}`);
-  }
-});
-app.post("/upload", async (req, res) => {
-  try {
-    console.log(req.body);
-    const archivos = req.body.files; // Esperamos que los archivos vengan como un arreglo de base64 o texto en el cuerpo de la solicitud
-
-    const folderPath = path.join(__dirname, "/public"); // Ruta de la carpeta
-    const files = await fs.readdir(folderPath); // Leer los archivos dentro de la carpeta
-    let htmlFiles = files.filter((file) => path.extname(file) === ".html"); // Filtrar solo los HTML
-
-    let resultados = [];
-    for (const file of htmlFiles) {
-      const filePath = path.join(folderPath, file);
-      const content = await fs.readFile(filePath, "utf8"); // Leer contenido del archivo
-      const nombres = extractSpanContents(
-        content,
-        `class="_2CzqyEwl">`,
-        `</span>`
-      );
-      const precios = extractSpanContents(
-        content,
-        `class="_3QXWbu8N">`,
-        `</div>`
-      );
-      const detalles = extractSpanContents(
-        content,
-        `class="_2mokkSXY">`,
-        `</span>`
-      );
-      const cantidad = extractSpanContents(
-        content,
-        `class="_3kmrz08e">`,
-        `</div>`
-      );
-      const elementos = nombres.map((item, index) => {
-        const _precio = Number(precios[index].replace(/\$/, ""));
-        const _cantidad = Number(cantidad[index].slice(9));
-
-        return {
-          Nombre: nombres[index],
-          Detalles: detalles[index].trim(),
-          Cantidad: _cantidad,
-          Precio: _precio,
-          Costo: _cantidad * _precio,
-        };
-      });
-      elementos.forEach((item) => resultados.push(item)); // Almacenar el contenido en el arreglo
-    }
-    try {
-      // Crear un libro de trabajo
-      const workbook = XLSX.utils.book_new();
-
-      // Crear una hoja de trabajo a partir del arreglo de objetos
-      const worksheet = XLSX.utils.json_to_sheet(resultados);
-
-      // Agregar la hoja de trabajo al libro
-      XLSX.utils.book_append_sheet(workbook, worksheet, "DatosHTML");
-
-      // Definir el archivo Excel como un archivo binario
-      const excelBuffer = XLSX.write(workbook, {
-        type: "buffer",
-        bookType: "xlsx",
-      });
-
-      // Enviar el archivo Excel como descarga
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=datos-html.xlsx"
-      );
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-      res.send(excelBuffer);
-    } catch (error) {
-      console.error(error);
-    }
-  } catch (error) {
-    res.status(500).send(`Error: ${error.message}`);
-  }
-});
 app.post(
   "/procesar-archivos",
   upload.array("archivosHtml"),
@@ -195,12 +40,19 @@ app.post(
       // Acceder a los archivos subidos desde req.files
       const archivos = req.files;
       let resultados = [];
+      let divsConcatenados = ""; // Almacenará todos los divs concatenados
 
       // Procesar cada archivo recibido
       for (const archivo of archivos) {
         const filePath = path.join(__dirname, archivo.path); // Ruta temporal del archivo
         const content = await fs.readFile(filePath, "utf8"); // Leer el contenido del archivo
+        // Extraer todos los divs con la clase "_1vWYxse2"
+        const $ = cheerio.load(content);
 
+        const divs = $("div._1vWYxse2");
+        divs.each((index, element) => {
+          divsConcatenados += $.html(element); // Convertir el div a HTML y concatenarlo
+        });
         const nombres = extractSpanContents(
           content,
           `class="_2CzqyEwl">`,
@@ -256,16 +108,111 @@ app.post(
           bookType: "xlsx",
         });
 
-        // Enviar el archivo Excel como descarga
+        // Crear un archivo HTML con los divs concatenados
+        const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+       <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    ._1vWYxse2 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+
+    /* Estilos para la imagen */
+    ._15n6zmXZ {
+      margin-right: 20px;
+    }
+
+    ._15n6zmXZ img {
+      width: 150px; /* Ajusta el tamaño de la imagen */
+      height: auto;
+      border-radius: 8px;
+    }
+
+    /* Contenedor de texto */
+    ._32msOJ4B {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 70%;
+    }
+
+    /* Título del producto */
+    ._2CzqyEwl {
+      font-size: 1.5em; /* Tamaño de fuente más grande */
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    /* Precio */
+    ._3QXWbu8N {
+      font-size: 1.4em; /* Tamaño de fuente para el precio */
+      color: #f00; /* Color rojo para destacar */
+      margin-bottom: 10px;
+    }
+
+    /* Detalles adicionales */
+    ._2mokkSXY, ._3kmrz08e {
+      font-size: 1.2em;
+      margin-bottom: 5px;
+    }
+
+    /* Responsividad: ajustar el diseño en pantallas pequeñas */
+    @media (max-width: 600px) {
+      ._1vWYxse2 {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      ._15n6zmXZ {
+        margin-right: 0;
+        margin-bottom: 20px;
+      }
+
+      ._32msOJ4B {
+        max-width: 100%;
+      }
+    }
+  </style>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Divs Concatenados</title>
+      </head>
+      <body>
+        ${divsConcatenados} <!-- Divs concatenados aquí -->
+      </body>
+      </html>
+    `;
+        // Crear el archivo ZIP y agregar los archivos HTML y Excel
+        const zip = archiver("zip", { zlib: { level: 9 } }); // Nivel máximo de compresión
+
+        // Configurar las cabeceras para la descarga del archivo ZIP
         res.setHeader(
           "Content-Disposition",
-          "attachment; filename=datos-html.xlsx"
+          "attachment; filename=archivos.zip"
         );
-        res.setHeader(
-          "Content-Type",
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        );
-        res.send(excelBuffer).redirect("/");
+        res.setHeader("Content-Type", "application/zip");
+
+        // Adjuntar el stream de respuesta al archivo ZIP
+        zip.pipe(res);
+
+        // Agregar el archivo HTML al ZIP
+        zip.append(htmlContent, { name: "divs-concatenados.html" });
+
+        // Agregar el archivo Excel al ZIP
+        zip.append(excelBuffer, { name: "datos-html.xlsx" });
+
+        // Finalizar la creación del archivo ZIP
+        zip.finalize();
       } catch (error) {
         console.error(error);
       }
