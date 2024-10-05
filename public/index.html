@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<style>* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Orbitron', sans-serif;
+}
+
+body {
+    background-color: #0d0d0d;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Roboto', sans-serif;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: #00ffcc;
+    text-shadow: 0px 0px 10px rgba(0, 255, 204, 0.8);
+    margin-bottom: 20px;
+    animation: glow 1.5s infinite alternate;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border: 2px solid rgba(0, 255, 204, 0.5);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: 0px 0px 20px rgba(0, 255, 204, 0.5);
+    animation: slideIn 1s ease-out;
+}
+
+input[type="file"] {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 2px solid #00ffcc;
+    background-color: transparent;
+    color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+input[type="file"]:hover {
+    border-color: #ff00ff;
+    box-shadow: 0 0 10px #ff00ff, 0 0 40px #ff00ff, 0 0 80px #ff00ff;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #00ffcc;
+    color: #0d0d0d;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0px 0px 10px rgba(0, 255, 204, 0.8);
+}
+
+button:hover {
+    background-color: #ff00ff;
+    box-shadow: 0 0 10px #ff00ff, 0 0 40px #ff00ff, 0 0 80px #ff00ff;
+    color: #fff;
+    transform: scale(1.1);
+}
+
+/* Animaciones */
+@keyframes glow {
+    from {
+        text-shadow: 0px 0px 10px rgba(0, 255, 204, 0.5);
+    }
+    to {
+        text-shadow: 0px 0px 20px rgba(0, 255, 204, 1);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+</style>
+<html lang="en" class="html-class">
+<head class="head-class">
+    <meta charset="UTF-8" class="meta-charset-class">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" class="meta-viewport-class">
+    <title class="title-class">Subir Archivos HTML</title>
+</head>
+<body class="body-class">
+    <h1 class="h1-class">Sube tus archivos HTML para procesarlos</h1>
+    <form action="/procesar-archivos" method="POST" enctype="multipart/form-data" class="form-class">
+        <input type="file" name="archivosHtml" multiple accept=".html" class="input-file-class">
+        <button type="submit" class="button-class">Subir y Procesar</button>
+    </form>
+</body>
+</html>
